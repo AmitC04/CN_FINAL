@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pymongo[srv]
+yt-dlp
+python-dotenv
+requests
+streamlit
+google-generativeai
+google-adk
+pydantic
+matplotlib
+plotly
+mongomock
+dnspython
