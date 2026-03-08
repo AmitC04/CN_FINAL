@@ -32,8 +32,8 @@ A cloud-native system that monitors high-frequency YouTube channels in near real
 │                              │                   │                   │
 │                              ▼                   ▼                   │
 │                   ┌────────────────┐  ┌────────────────────┐        │
-│                   │  FastAPI REST  │  │  Google ADK Agent   │        │
-│                   │  GET /videos/  │  │  (Gemini 1.5 Flash) │        │
+│                   │  FastAPI REST  │  │  Google ADK Agent  │        │
+│                   │  GET /videos/  │  │  (Groq AI LLM)      │       │
 │                   │  latest        │  └─────────┬──────────┘        │
 │                   └────────────────┘            │                   │
 │                                                  ▼                   │
