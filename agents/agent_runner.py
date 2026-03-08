@@ -28,7 +28,7 @@ SYSTEM_PROMPT = """You are a YouTube Intelligence assistant with access to a Mon
 You help users query information about YouTube videos from channels like @markets and @ANINewsIndia.
 Always use the available tools to fetch real data. Be concise and helpful.
 When showing video lists, format them nicely with title, channel, and URL.
-When asked to plot or chart data, call tool_get_videos_per_hour and tell the user the data is ready to be charted."""
+When asked to plot or chart data, call tool_get_videos_per_hour and briefly summarize what the data shows (e.g. peak hour, total videos)."""
 
 TOOLS = [
     {
@@ -113,8 +113,15 @@ def _call_tool(name: str, args: dict) -> str:
         return f"Tool error: {exc}"
 
 
-def ask_agent_sync(query: str, session_id: str = "default") -> str:
-    """Send a query to Groq with tool-calling and return the final response."""
+def ask_agent_sync(query: str, session_id: str = "default") -> dict:
+    """Send a query to Groq with tool-calling and return a structured result.
+
+    Returns:
+        dict with keys:
+          - "text":       str — the LLM's final response text
+          - "chart_data": list | None — hourly video counts for charting
+          - "video_data": list | None — list of video dicts to render as cards
+    """
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": query},
@@ -133,9 +140,12 @@ def ask_agent_sync(query: str, session_id: str = "default") -> str:
 
     # If no tool calls, return directly
     if not msg.tool_calls:
-        return msg.content or "No response."
+        return {"text": msg.content or "No response.", "chart_data": None, "video_data": None}
 
-    # Execute every tool call the model requested
+    # Execute every tool call the model requested; track structured data
+    chart_data = None
+    video_data = None
+
     messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": [
         {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
         for tc in msg.tool_calls
@@ -144,6 +154,23 @@ def ask_agent_sync(query: str, session_id: str = "default") -> str:
     for tc in msg.tool_calls:
         args = json.loads(tc.function.arguments)
         result = _call_tool(tc.function.name, args)
+
+        # Capture raw structured data before it gets summarised by the LLM
+        if tc.function.name == "tool_get_videos_per_hour":
+            try:
+                parsed = json.loads(result)
+                if isinstance(parsed, list) and parsed and "_id" in parsed[0]:
+                    chart_data = parsed
+            except Exception:
+                pass
+        elif tc.function.name == "tool_get_latest_videos":
+            try:
+                parsed = json.loads(result)
+                if isinstance(parsed, list) and parsed and "title" in parsed[0]:
+                    video_data = parsed
+            except Exception:
+                pass
+
         messages.append({
             "role": "tool",
             "tool_call_id": tc.id,
@@ -156,10 +183,16 @@ def ask_agent_sync(query: str, session_id: str = "default") -> str:
         messages=messages,
         max_tokens=2048,
     )
-    return final.choices[0].message.content or "Done."
+    text = final.choices[0].message.content or "Done."
+    return {"text": text, "chart_data": chart_data, "video_data": video_data}
 
 
 if __name__ == "__main__":
     q = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Show latest 5 videos"
     print("Q:", q)
-    print("A:", ask_agent_sync(q))
+    res = ask_agent_sync(q)
+    print("A:", res["text"])
+    if res["chart_data"]:
+        print("Chart data:", res["chart_data"])
+    if res["video_data"]:
+        print("Video data:", json.dumps(res["video_data"], indent=2, default=str))

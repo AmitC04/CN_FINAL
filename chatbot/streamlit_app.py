@@ -493,17 +493,18 @@ if user_input:
 
     with st.spinner("🤖 Thinking — querying database & generating response…"):
         try:
-            raw = ask_agent_sync(user_input, st.session_state.session_id)
+            result = ask_agent_sync(user_input, st.session_state.session_id)
         except Exception as e:
-            raw = f"⚠️ Error: {e}"
+            result = {"text": f"⚠️ Error: {e}", "chart_data": None, "video_data": None}
 
-    chart_data = try_chart(raw)
-    video_data = try_videos(raw) if not chart_data else None
+    raw        = result["text"]
+    chart_data = result.get("chart_data")
+    video_data = result.get("video_data")
 
     if chart_data:
-        display = "Here is the hourly video distribution:"
+        display = raw  # LLM summary is shown above the chart
     elif video_data:
-        display = f"Here are the latest {len(video_data)} videos:"
+        display = raw  # LLM summary is shown above the video cards
     else:
         display = raw
 
