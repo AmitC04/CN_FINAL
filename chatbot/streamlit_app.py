@@ -182,15 +182,25 @@ st.markdown("""
   }
 
   /* ── Empty state ── */
-  .empty-state { text-align: center; padding: 72px 20px; color: #333; }
-  .empty-state .big-icon { font-size: 4rem; }
+  .empty-state { text-align: center; padding: 48px 20px; color: #333; }
   .empty-state .hint { font-size: 1.05rem; margin-top: 12px; color: #444; font-weight: 500; }
-  .empty-state .sub  { font-size: 0.82rem; margin-top: 6px; color: #2e2e2e; }
-  .empty-state .pills { margin-top: 16px; }
-  .pill {
-    display: inline-block; background: #161616; border: 1px solid #2a2a2a;
-    color: #555; border-radius: 20px; padding: 4px 12px;
-    font-size: 0.78rem; margin: 3px;
+  .empty-state .sub  { font-size: 0.82rem; margin-top: 6px; color: #2e2e2e; margin-bottom: 28px; }
+
+  /* ── Quick-action buttons in empty state ── */
+  div[data-testid="column"] button {
+    background: #131313 !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 12px !important;
+    color: #aaa !important;
+    font-size: 0.85rem !important;
+    padding: 14px 8px !important;
+    width: 100% !important;
+    transition: all 0.2s ease !important;
+  }
+  div[data-testid="column"] button:hover {
+    border-color: #ff0000 !important;
+    color: #fff !important;
+    background: #1a0000 !important;
   }
 
   /* ── Chat input ── */
@@ -442,14 +452,24 @@ if not st.session_state.messages:
     st.markdown("""
     <div class="empty-state">
       <div class="hint">Start a conversation</div>
-      <div class="sub">Use the quick prompts on the left or type your question below</div>
-      <div class="pills" style="margin-top:20px">
-        <span class="pill">📊 Charts</span>
-        <span class="pill">📺 Video Lists</span>
-        <span class="pill">🔍 Keyword Search</span>
-        <span class="pill">📈 Channel Stats</span>
-      </div>
+      <div class="sub">Click a topic below or type any question in the chat box</div>
     </div>""", unsafe_allow_html=True)
+
+    QUICK_ACTIONS = [
+        ("📊 Plot hourly chart",       "Plot videos published per hour"),
+        ("📺 Show latest videos",       "Show latest 5 videos"),
+        ("📈 @markets stats",           "How many videos from markets channel?"),
+        ("📰 @ANINewsIndia stats",      "How many videos from ANINewsIndia channel?"),
+        ("🔍 Search: India",            "How many videos about India in the last 24 hours?"),
+        ("🔍 Search: USA",              "Videos about USA in ANINewsIndia (24h)"),
+        ("🕐 Videos today",             "How many videos were published today?"),
+        ("⚡ Latest from markets",      "Show latest 3 videos from markets channel"),
+    ]
+    cols = st.columns(4)
+    for i, (label, prompt) in enumerate(QUICK_ACTIONS):
+        if cols[i % 4].button(label, key=f"qa_{i}", use_container_width=True):
+            st.session_state.quick_prompt = prompt
+            st.rerun()
 else:
     for msg in st.session_state.messages:
         render_message(
